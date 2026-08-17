@@ -1,0 +1,5 @@
+Appium-Python-Client
+selenium
+networkx
+matplotlib
+anthropic
