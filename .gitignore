@@ -1,0 +1,20 @@
+# 크롤링 결과물 (실행하면 다시 생성됨)
+output/
+output_emulator/
+
+# APK 바이너리
+apk/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 환경변수 / 비밀값
+.env
+.env.*
+
+# macOS
+.DS_Store
