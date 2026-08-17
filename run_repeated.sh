@@ -1,8 +1,8 @@
 #!/bin/bash
 set -u
-cd /Users/limchaekuk_mini/Projects/tmap-crawler
+cd "$(dirname "$0")"
 source venv/bin/activate
-export ANDROID_HOME=~/Library/Android/sdk
+export ANDROID_HOME=${ANDROID_HOME:-~/Library/Android/sdk}
 export PATH="$ANDROID_HOME/platform-tools:$PATH"
 
 TOTAL=${1:-120}
