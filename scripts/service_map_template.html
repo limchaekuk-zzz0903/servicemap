@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TMAP 서비스 구조도</title>
+<style>
+  :root, :root[data-theme="light"]{
+    --bg:#f4f6fb; --panel:#ffffff; --panel-2:#f9fafc; --ink:#1a2030; --ink-2:#5a6478;
+    --line:#e4e8f0; --line-2:#eef1f6; --accent:#4f6ef2; --shadow:0 1px 3px rgba(20,30,60,.08),0 8px 24px rgba(20,30,60,.06);
+    --chip:#eef2fe; --chip-ink:#3550cf; --danger:#e5484d; --danger-bg:#fdecec;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1118; --panel:#161b25; --panel-2:#1b212d; --ink:#e7ebf3; --ink-2:#98a2b8;
+      --line:#262d3a; --line-2:#1f2530; --accent:#6d86f5; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+      --chip:#20283a; --chip-ink:#9db0f7; --danger:#ff6369; --danger-bg:#331a1c;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1118; --panel:#161b25; --panel-2:#1b212d; --ink:#e7ebf3; --ink-2:#98a2b8;
+    --line:#262d3a; --line-2:#1f2530; --accent:#6d86f5; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --chip:#20283a; --chip-ink:#9db0f7; --danger:#ff6369; --danger-bg:#331a1c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .brand h1{font-size:19px;font-weight:750;margin:0;letter-spacing:-.02em}
+  .brand .sub{color:var(--ink-2);font-size:12.5px;font-weight:500}
+  .stats{display:flex;gap:8px;flex-wrap:wrap}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:6px 12px;min-width:74px}
+  .stat b{display:block;font-size:18px;font-weight:750;letter-spacing:-.02em;line-height:1.15}
+  .stat span{font-size:11px;color:var(--ink-2);font-weight:500}
+  .stat.danger b{color:var(--danger)}
+  .toolbar{position:sticky;top:57px;z-index:15;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .tabs{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+  .tab{border:0;background:transparent;color:var(--ink-2);font:inherit;font-weight:650;font-size:13px;padding:7px 15px;border-radius:8px;cursor:pointer}
+  .tab.active{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .grow{flex:1}
+  input[type=search],select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+  input[type=search]{min-width:200px}
+  .toggle{display:flex;align-items:center;gap:6px;color:var(--ink-2);font-size:12.5px;font-weight:600;cursor:pointer;user-select:none}
+  main{padding:20px 22px 60px;max-width:1500px;margin:0 auto}
+  .hidden{display:none!important}
+
+  /* ── 개요 그래프 ── */
+  .overview-wrap{display:grid;grid-template-columns:1fr 260px;gap:18px}
+  @media(max-width:900px){.overview-wrap{grid-template-columns:1fr}}
+  .graph-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+  .graph-hint{position:absolute;left:14px;top:12px;color:var(--ink-2);font-size:11.5px;background:color-mix(in srgb,var(--panel) 80%,transparent);padding:4px 9px;border-radius:8px;border:1px solid var(--line)}
+  svg#graph{display:block;width:100%;height:600px;cursor:grab;touch-action:none}
+  svg#graph:active{cursor:grabbing}
+  .node-label{font-size:11px;font-weight:650;fill:var(--ink);pointer-events:none;paint-order:stroke;stroke:var(--panel);stroke-width:3px}
+  .node-count{font-size:10px;fill:#fff;font-weight:750;pointer-events:none}
+  .side{display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+  .card h3{margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:.01em}
+  .catrow{display:flex;align-items:center;gap:9px;margin:9px 0;font-size:12.5px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .catrow .nm{flex:1;font-weight:600}
+  .catrow .bar{height:6px;border-radius:4px;background:var(--line);flex:2;overflow:hidden}
+  .catrow .bar i{display:block;height:100%;border-radius:4px}
+  .catrow .n{color:var(--ink-2);font-weight:650;min-width:26px;text-align:right}
+  .legend-note{color:var(--ink-2);font-size:11.5px;line-height:1.5;margin-top:4px}
+
+  /* ── 갤러리 ── */
+  .actgroup{margin-bottom:26px}
+  .actgroup-head{display:flex;align-items:center;gap:10px;margin:0 0 12px;cursor:pointer;user-select:none}
+  .actgroup-head .pill{font-size:11px;font-weight:700;color:#fff;padding:2px 9px;border-radius:20px}
+  .actgroup-head h2{font-size:15px;font-weight:720;margin:0;letter-spacing:-.01em}
+  .actgroup-head .meta{color:var(--ink-2);font-size:12px;font-weight:600}
+  .actgroup-head .chev{color:var(--ink-2);transition:transform .15s;margin-left:auto}
+  .actgroup.collapsed .chev{transform:rotate(-90deg)}
+  .actgroup.collapsed .grid{display:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:13px}
+  .cardn{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;position:relative}
+  .cardn:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--accent)}
+  .cardn .shot{width:100%;aspect-ratio:9/17;object-fit:cover;object-position:top;background:var(--panel-2);display:block;border-bottom:1px solid var(--line-2)}
+  .cardn .noshot{width:100%;aspect-ratio:9/17;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:11px;background:var(--panel-2)}
+  .cardn .cap{padding:7px 8px 8px}
+  .cardn .cap .t{font-size:11.5px;font-weight:650;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:30px}
+  .badges{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+  .b{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--panel-2);color:var(--ink-2);border:1px solid var(--line)}
+  .b.warn{background:var(--danger-bg);color:var(--danger);border-color:transparent}
+  .cardn .cornerblk{position:absolute;top:7px;right:7px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .emptybox{color:var(--ink-2);text-align:center;padding:50px 0;font-size:13px}
+
+  /* ── 안전 리포트 ── */
+  .safety-intro{background:var(--danger-bg);border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);border-radius:14px;padding:15px 18px;margin-bottom:18px;color:var(--ink)}
+  .safety-intro b{color:var(--danger)}
+  .reasongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:13px}
+  .reasoncard{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);overflow:hidden}
+  .reasoncard .rh{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line-2)}
+  .reasoncard .rh .kw{font-weight:750;font-size:14px}
+  .reasoncard .rh .cnt{font-weight:800;color:var(--danger);font-size:16px}
+  .reasoncard ul{margin:0;padding:8px 15px 14px;list-style:none;max-height:190px;overflow:auto}
+  .reasoncard li{font-size:12.5px;color:var(--ink-2);padding:3px 0;display:flex;gap:7px}
+  .reasoncard li:before{content:"⛔";font-size:11px}
+
+  /* ── 상세 드로어 ── */
+  .backdrop{position:fixed;inset:0;background:rgba(10,15,30,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+  .backdrop.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:440px;max-width:94vw;background:var(--panel);border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(10,15,30,.2);transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);z-index:50;display:flex;flex-direction:column}
+  .drawer.on{transform:none}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);gap:10px}
+  .drawer-head .x{border:0;background:var(--panel-2);color:var(--ink);width:32px;height:32px;border-radius:9px;font-size:18px;cursor:pointer;flex:none}
+  .drawer-body{overflow:auto;padding:18px;display:flex;flex-direction:column;gap:16px}
+  .dshot{width:170px;border-radius:12px;border:1px solid var(--line);align-self:center;box-shadow:var(--shadow)}
+  .kv{display:grid;grid-template-columns:82px 1fr;gap:5px 12px;font-size:13px}
+  .kv .k{color:var(--ink-2);font-weight:600}
+  .kv .v{font-weight:600;word-break:break-all}
+  .sec-title{font-size:12px;font-weight:750;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin:2px 0 2px}
+  .translist{display:flex;flex-direction:column;gap:7px}
+  .tran{display:flex;align-items:center;gap:9px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 9px;cursor:pointer;text-align:left;width:100%;font:inherit;color:var(--ink)}
+  .tran:hover{border-color:var(--accent)}
+  .tran img{width:28px;height:50px;object-fit:cover;object-position:top;border-radius:5px;flex:none;background:var(--panel)}
+  .tran .tl{flex:1;min-width:0}
+  .tran .tl .a{font-size:12px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tran .tl .s{font-size:11px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .blocklist{display:flex;flex-direction:column;gap:6px}
+  .blk{display:flex;align-items:center;gap:8px;background:var(--danger-bg);border-radius:9px;padding:7px 10px;font-size:12.5px}
+  .blk .kw{margin-left:auto;font-weight:750;color:var(--danger);font-size:11px;background:var(--panel);padding:1px 7px;border-radius:6px}
+  .muted{color:var(--ink-2);font-size:12.5px}
+  .pillcat{font-size:11px;font-weight:700;color:#fff;padding:2px 9px;border-radius:20px}
+  footer{color:var(--ink-2);font-size:11.5px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><h1>TMAP 서비스 구조도</h1><span class="sub" id="subtitle"></span></div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<nav class="toolbar">
+  <div class="tabs">
+    <button class="tab active" data-view="overview">개요 그래프</button>
+    <button class="tab" data-view="gallery">화면 갤러리</button>
+    <button class="tab" data-view="safety">안전 리포트</button>
+  </div>
+  <div class="grow"></div>
+  <input type="search" id="search" placeholder="화면·액티비티 검색…">
+  <select id="catfilter"><option value="">전체 카테고리</option></select>
+  <label class="toggle"><input type="checkbox" id="onlyblocked"> 차단 액션 화면만</label>
+</nav>
+
+<main>
+  <section id="view-overview">
+    <div class="overview-wrap">
+      <div class="graph-card">
+        <div class="graph-hint">드래그로 이동 · 휠로 확대/축소 · 원을 클릭하면 해당 화면들로 이동</div>
+        <svg id="graph"></svg>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>기능 카테고리별 화면 수</h3>
+          <div id="catbars"></div>
+        </div>
+        <div class="card">
+          <h3>구조도 읽는 법</h3>
+          <div class="legend-note">
+            원 하나 = 하나의 <b>액티비티(화면 종류)</b>이고, 크기는 그 액티비티가 가진
+            화면 수예요. 화살표는 화면 사이 <b>이동(전이)</b>이며 굵을수록 자주 오가는
+            경로입니다. 색은 기능 카테고리를 뜻해요. 자세한 화면은 ‘화면 갤러리’ 탭에서
+            스크린샷으로 확인할 수 있습니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-gallery" class="hidden"><div id="gallery"></div></section>
+
+  <section id="view-safety" class="hidden">
+    <div class="safety-intro">
+      크롤러는 <b>주행·경로안내</b>와 <b>결제·구매·예약</b>으로 이어질 수 있는 버튼을
+      <b>발견만 하고 절대 누르지 않습니다</b>. 아래는 그렇게 안전하게 차단된 액션 목록으로,
+      실제 주행 시작이나 금전 거래 없이 화면 구조만 수집했음을 보여줍니다.
+    </div>
+    <div class="reasongrid" id="reasongrid"></div>
+  </section>
+</main>
+
+<footer id="foot"></footer>
+
+<div class="backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <span class="pillcat" id="d-cat"></span>
+    <button class="x" id="d-close">×</button>
+  </div>
+  <div class="drawer-body" id="d-body"></div>
+</aside>
+
+<script>
+const DATA = __DATA__;
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const byFp = Object.fromEntries(DATA.screens.map(s=>[s.fp,s]));
+const CAT_COLOR = {}; DATA.activities.forEach(a=>CAT_COLOR[a.cat]=a.color);
+DATA.screens.forEach(s=>CAT_COLOR[s.cat]=s.color);
+
+/* ── 상단 통계 ── */
+(function(){
+  const S=DATA.summary;
+  $("#subtitle").textContent = `자동 크롤링 화면 지도 · ${S.crawlDate||""}`;
+  const chips=[
+    ["화면",S.screens],["이동(전이)",S.transitions],["액티비티",S.activities],
+    ["최대 깊이",S.maxDepth],["앱 이탈",S.leftApp],
+  ];
+  let h=chips.map(([l,v])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+  h+=`<div class="stat danger"><b>${S.blocked}</b><span>차단된 액션</span></div>`;
+  $("#stats").innerHTML=h;
+  $("#foot").innerHTML=`TMAP 서비스 구조도 · 화면 ${S.screens}개 / 전이 ${S.transitions}개 · 크롤 ${S.crawlDate||""} · 주행·결제 액션 ${S.blocked}건은 안전하게 차단됨`;
+})();
+
+/* ── 카테고리 막대 ── */
+(function(){
+  const max=Math.max(...DATA.summary.catCounts.map(c=>c.n),1);
+  $("#catbars").innerHTML = DATA.summary.catCounts.map(c=>{
+    const col=CAT_COLOR[c.cat]||"#94a3b8";
+    return `<div class="catrow"><span class="dot" style="background:${col}"></span>
+      <span class="nm">${esc(c.cat)}</span>
+      <span class="bar"><i style="width:${c.n/max*100}%;background:${col}"></i></span>
+      <span class="n">${c.n}</span></div>`;
+  }).join("");
+  const sel=$("#catfilter");
+  DATA.categoryOrder.filter(c=>DATA.screens.some(s=>s.cat===c)).forEach(c=>{
+    const o=document.createElement("option");o.value=c;o.textContent=c;sel.appendChild(o);
+  });
+})();
+
+/* ── 개요 그래프 (SVG) ── */
+(function(){
+  const svg=$("#graph"), W=1000,H=600,PAD=70;
+  const acts=DATA.activities, edges=DATA.actEdges;
+  const xs=acts.map(a=>a.x), ys=acts.map(a=>a.y);
+  const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
+  const sx=x=>PAD+(x-minx)/((maxx-minx)||1)*(W-2*PAD);
+  const sy=y=>PAD+(y-miny)/((maxy-miny)||1)*(H-2*PAD);
+  const R=a=>13+Math.sqrt(a.count)*3.4;
+  const pos=Object.fromEntries(acts.map(a=>[a.name,{x:sx(a.x),y:sy(a.y),r:R(a)}]));
+  const maxW=Math.max(...edges.map(e=>e.w),1);
+
+  let defs=`<defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="var(--ink-2)"/></marker></defs>`;
+  let eh="";
+  edges.forEach(e=>{
+    const a=pos[e.from],b=pos[e.to]; if(!a||!b)return;
+    const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;
+    const ux=dx/L,uy=dy/L;
+    const x1=a.x+ux*a.r,y1=a.y+uy*a.r,x2=b.x-ux*(b.r+8),y2=b.y-uy*(b.r+8);
+    const mx=(x1+x2)/2-uy*L*0.12, my=(y1+y2)/2+ux*L*0.12;
+    const w=1+e.w/maxW*5;
+    eh+=`<path d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2}" fill="none" stroke="var(--ink-2)" stroke-opacity="${0.18+e.w/maxW*0.5}" stroke-width="${w}" marker-end="url(#arr)"/>`;
+  });
+  let nh="";
+  acts.forEach(a=>{
+    const p=pos[a.name];
+    nh+=`<g class="gnode" data-act="${esc(a.name)}" style="cursor:pointer">
+      <circle cx="${p.x}" cy="${p.y}" r="${p.r}" fill="${a.color}" fill-opacity="0.92" stroke="var(--panel)" stroke-width="2"/>
+      <text class="node-count" x="${p.x}" y="${p.y+3.5}" text-anchor="middle">${a.count}</text>
+      <text class="node-label" x="${p.x}" y="${p.y+p.r+13}" text-anchor="middle">${esc(a.name.replace(/Activity$/,''))}</text>
+    </g>`;
+  });
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.innerHTML=defs+eh+nh;
+
+  // 팬/줌 (viewBox 조작)
+  let vb={x:0,y:0,w:W,h:H};
+  const apply=()=>svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  let drag=null;
+  svg.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,vx:vb.x,vy:vb.y};svg.setPointerCapture(e.pointerId);});
+  svg.addEventListener("pointermove",e=>{ if(!drag)return;
+    const r=svg.getBoundingClientRect();
+    vb.x=drag.vx-(e.clientX-drag.x)*vb.w/r.width;
+    vb.y=drag.vy-(e.clientY-drag.y)*vb.h/r.height; apply();});
+  svg.addEventListener("pointerup",e=>{drag=null;});
+  svg.addEventListener("wheel",e=>{e.preventDefault();
+    const r=svg.getBoundingClientRect();
+    const mx=vb.x+(e.clientX-r.left)/r.width*vb.w, my=vb.y+(e.clientY-r.top)/r.height*vb.h;
+    const f=e.deltaY>0?1.12:0.89, nw=Math.min(W*2.2,Math.max(W*0.25,vb.w*f)), nh2=nw*H/W;
+    vb.x=mx-(mx-vb.x)*nw/vb.w; vb.y=my-(my-vb.y)*nh2/vb.h; vb.w=nw; vb.h=nh2; apply();
+  },{passive:false});
+  $$(".gnode",svg).forEach(g=>g.addEventListener("click",()=>{
+    const act=g.dataset.act; switchView("gallery");
+    $("#search").value=act; applyFilter();
+  }));
+})();
+
+/* ── 갤러리 ── */
+function renderGallery(){
+  const q=$("#search").value.trim().toLowerCase();
+  const cat=$("#catfilter").value;
+  const onlyBlk=$("#onlyblocked").checked;
+  let list=DATA.screens.filter(s=>{
+    if(cat && s.cat!==cat)return false;
+    if(onlyBlk && !(s.blocked&&s.blocked.length))return false;
+    if(q && !(s.activity.toLowerCase().includes(q)||(s.label||"").toLowerCase().includes(q)||s.fp.includes(q)))return false;
+    return true;
+  });
+  const groups={};
+  list.forEach(s=>{(groups[s.activity]=groups[s.activity]||[]).push(s);});
+  const order=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
+  const el=$("#gallery");
+  if(!list.length){el.innerHTML=`<div class="emptybox">조건에 맞는 화면이 없습니다.</div>`;return;}
+  el.innerHTML=order.map(act=>{
+    const ss=groups[act], col=ss[0].color, cat=ss[0].cat;
+    const cards=ss.map(s=>{
+      const blk=s.blocked&&s.blocked.length;
+      const shot=s.thumb?`<img class="shot" loading="lazy" src="${s.thumb}">`:`<div class="noshot">스크린샷 없음</div>`;
+      return `<div class="cardn" data-fp="${s.fp}">
+        ${blk?`<span class="cornerblk">⛔ ${blk}</span>`:""}
+        ${shot}
+        <div class="cap"><div class="t">${esc(s.label)}</div>
+          <div class="badges"><span class="b">depth ${s.depth}</span>
+            <span class="b">→ ${s.out.length}</span></div></div></div>`;
+    }).join("");
+    return `<div class="actgroup"><div class="actgroup-head">
+        <span class="pill" style="background:${col}">${esc(cat)}</span>
+        <h2>${esc(act)}</h2><span class="meta">화면 ${ss.length}개</span>
+        <span class="chev">▾</span></div>
+      <div class="grid">${cards}</div></div>`;
+  }).join("");
+  $$(".actgroup-head",el).forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("collapsed")));
+  $$(".cardn",el).forEach(c=>c.addEventListener("click",()=>openDrawer(c.dataset.fp)));
+}
+
+/* ── 안전 리포트 ── */
+(function(){
+  const byReason={};
+  DATA.blocked.forEach(b=>{(byReason[b.reason||"기타"]=byReason[b.reason||"기타"]||[]).push(b);});
+  const order=Object.keys(byReason).sort((a,b)=>byReason[b].length-byReason[a].length);
+  $("#reasongrid").innerHTML=order.map(r=>{
+    const items=byReason[r];
+    const labels=[...new Set(items.map(i=>i.label))].slice(0,40);
+    return `<div class="reasoncard"><div class="rh"><span class="kw">‘${esc(r)}’</span>
+        <span class="cnt">${items.length}</span></div>
+      <ul>${labels.map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div>`;
+  }).join("") || `<div class="emptybox">차단된 액션이 없습니다.</div>`;
+})();
+
+/* ── 상세 드로어 ── */
+function openDrawer(fp){
+  const s=byFp[fp]; if(!s)return;
+  $("#d-cat").textContent=s.cat; $("#d-cat").style.background=s.color;
+  const miniTran=(t,dirKey)=>{
+    const other=byFp[t[dirKey]];
+    const thumb=other&&other.thumb?`<img src="${other.thumb}">`:`<div style="width:28px;height:50px;border-radius:5px;background:var(--panel-2);flex:none"></div>`;
+    const name=other?other.label:"(알 수 없음)";
+    return `<button class="tran" data-fp="${t[dirKey]}">${thumb}
+      <span class="tl"><span class="a">${esc(t.label||"(라벨 없음)")}</span>
+      <span class="s">${dirKey==='to'?'→ ':'← '}${esc(name)}</span></span></button>`;
+  };
+  const shot=s.thumb?`<img class="dshot" src="${s.thumb}">`:`<div class="dshot noshot" style="height:300px">스크린샷 없음</div>`;
+  const blocks = (s.blocked&&s.blocked.length)
+    ? `<div><div class="sec-title">차단된 액션 (${s.blocked.length})</div><div class="blocklist">${
+        s.blocked.map(b=>`<div class="blk"><span>${esc(b.action_label)}</span><span class="kw">${esc(b.block_reason)}</span></div>`).join("")}</div></div>` : "";
+  const outs = s.out.length
+    ? `<div><div class="sec-title">나가는 이동 (${s.out.length})</div><div class="translist">${s.out.map(t=>miniTran(t,'to')).join("")}</div></div>`
+    : `<div class="muted">나가는 이동이 없는 말단 화면입니다.</div>`;
+  const incs = s.inc.length
+    ? `<div><div class="sec-title">들어오는 이동 (${s.inc.length})</div><div class="translist">${s.inc.slice(0,12).map(t=>miniTran(t,'from')).join("")}</div></div>` : "";
+  $("#d-body").innerHTML=`${shot}
+    <div class="kv">
+      <span class="k">라벨</span><span class="v">${esc(s.label)}</span>
+      <span class="k">액티비티</span><span class="v">${esc(s.activity)}</span>
+      <span class="k">깊이</span><span class="v">depth ${s.depth}</span>
+      <span class="k">발견 시각</span><span class="v">${esc(s.discovered)}</span>
+      <span class="k">지문</span><span class="v" style="font-family:monospace;font-size:11px">${esc(s.fp)}</span>
+    </div>${blocks}${outs}${incs}`;
+  $$(".tran",$("#d-body")).forEach(b=>b.addEventListener("click",()=>openDrawer(b.dataset.fp)));
+  $("#drawer").classList.add("on"); $("#backdrop").classList.add("on");
+}
+function closeDrawer(){$("#drawer").classList.remove("on");$("#backdrop").classList.remove("on");}
+$("#d-close").addEventListener("click",closeDrawer);
+$("#backdrop").addEventListener("click",closeDrawer);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer();});
+
+/* ── 뷰 전환 & 필터 ── */
+function switchView(v){
+  $$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
+  ["overview","gallery","safety"].forEach(k=>$("#view-"+k).classList.toggle("hidden",k!==v));
+}
+function applyFilter(){ renderGallery(); }
+$$(".tab").forEach(t=>t.addEventListener("click",()=>switchView(t.dataset.view)));
+$("#search").addEventListener("input",()=>{renderGallery(); if($("#view-gallery").classList.contains("hidden"))switchView("gallery");});
+$("#catfilter").addEventListener("change",()=>{renderGallery();switchView("gallery");});
+$("#onlyblocked").addEventListener("change",()=>{renderGallery();switchView("gallery");});
+renderGallery();
+</script>
+</body>
+</html>
