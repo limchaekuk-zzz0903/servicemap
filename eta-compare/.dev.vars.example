@@ -1,0 +1,6 @@
+# 로컬 개발용(wrangler dev). 이 파일을 .dev.vars 로 복사해서 값을 채운다.
+ACCESS_TOKEN=change-me
+TMAP_APP_KEY=
+NAVER_KEY_ID=
+NAVER_KEY=
+KAKAO_REST_KEY=

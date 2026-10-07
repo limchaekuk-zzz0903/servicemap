@@ -1,0 +1,11 @@
+name = "eta-compare"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+# public/ 의 정적 파일(모바일 웹)을 같은 도메인에서 서빙하고,
+# 그 외 경로(/api/*)는 worker.js 가 처리한다.
+[assets]
+directory = "./public"
+
+# 비밀값은 여기 적지 말고 `wrangler secret put` 으로 등록한다.
+#   ACCESS_TOKEN, TMAP_APP_KEY, NAVER_KEY_ID, NAVER_KEY, KAKAO_REST_KEY
